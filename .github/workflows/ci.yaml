@@ -59,13 +59,18 @@ jobs:
       - uses: hashicorp/setup-terraform@v4
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      - run: terraform init
-      - run: terraform plan
+      - name: init plan
+        run: terraform init 
         if: github.event_name == 'pull_request'
         env:
           TF_WORKSPACE: "tech-challenge-${{ github.base_ref }}"
-      - run: terraform apply -auto-approve
+      - name: init apply
+        run: terraform init 
         if: github.event_name == 'push'
         env:
           TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
+      - run: terraform plan
+        if: github.event_name == 'pull_request'
+      - run: terraform apply -auto-approve
+        if: github.event_name == 'push'
 
