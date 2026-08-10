@@ -2,14 +2,20 @@ name: CI Pipeline
 
 on: 
   pull_request:
+  push:
+    branches:
+      - devel
+      - stage
 
-defaults:
-  run:
-    working-directory: codebase/rdicidr-0.1.0
+
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: codebase/rdicidr-0.1.0
 
     steps: 
       - name: Check out code
@@ -33,3 +39,42 @@ jobs:
 
       - name: Build project
         run: npm run build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: my-artifact
+          path: codebase/rdicidr-0.1.0/build
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: codebase/rdicidr-0.1.0/terraform
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - name: init plan
+        run: terraform init 
+        if: github.event_name == 'pull_request'
+        env:
+          TF_WORKSPACE: "tech-challenge-${{ github.base_ref }}"
+      - name: init apply
+        run: terraform init 
+        if: github.event_name == 'push'
+        env:
+          TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
+      - run: terraform plan
+        if: github.event_name == 'pull_request'
+        env:
+          TF_WORKSPACE: "tech-challenge-${{ github.base_ref }}"
+      - run: terraform apply -auto-approve
+        if: github.event_name == 'push'
+        env:
+          TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
+
