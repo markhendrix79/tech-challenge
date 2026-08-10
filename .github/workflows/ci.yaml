@@ -59,7 +59,7 @@ jobs:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
       - run: terraform init
       - run: terraform plan
-        if: github.event_name = pull_request
+        if: github.event_name == 'pull_request'
       - run: terraform apply -auto-approve
-        if: github.event_name = merge
+        if: github.event_name == 'push'
 
