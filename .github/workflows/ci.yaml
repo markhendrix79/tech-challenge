@@ -74,9 +74,9 @@ jobs:
         run: terraform init 
       - run: terraform apply -auto-approve
       - id: get_cloudfront_id
-        run: echo "CLOUDFRONT_ID=$(terraform output -raw dist_id)" >> $GITHUB_OUTPUTS
+        run: echo "CLOUDFRONT_ID=$(terraform output -raw dist_id)" >> $GITHUB_OUTPUT
       - id: get_url
-        run: echo "URL=$(terraform output -raw URL)" >> $GITHUB_OUTPUTS
+        run: echo "URL=$(terraform output -raw URL)" >> $GITHUB_OUTPUT
 
   sync:
     runs-on: ubuntu-latest
