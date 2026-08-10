@@ -53,6 +53,10 @@ jobs:
       run:
         working-directory: codebase/rdicidr-0.1.0/terraform
 
+    outputs:
+      CLOUDFRONT_ID: ${{ steps.get_cloudfront_id.outputs.CLOUDFRONT_ID }}
+      URL: ${{ steps.get_url.outputs.URL }}
+
     steps:
       - name: Check out code
         uses: actions/checkout@v2
@@ -77,4 +81,38 @@ jobs:
         if: github.event_name == 'push'
         env:
           TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
+      - id: get_cloudfront_id
+        run: echo "CLOUDFRONT_ID=$(terraform output -raw dist_id)" >> $GITHUB_OUTPUTS
+      - id: get_url
+        run: echo "URL=$(terraform output -raw URL)" >> $GITHUB_OUTPUTS
+
+  sync:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    needs: [build, deploy]
+
+    env:
+      CLOUDFRONT_ID: ${{ needs.deploy.outputs.CLOUDFRONT_ID }}
+      URL: ${{ needs.deploy.outputs.URL }}
+
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: my-artifact
+          path: /build
+      - name: Configure AWS Credentials 
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::062811504897:role/fs-temp-role
+      - name: Sync site to s3
+        run: aws s3 sync build/ s3://mark-hendrix-fullstack-tech-challenge-${( github.ref_name )}
+      - name: Invalidate Cloudfront
+        run: aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID
+      - name: Display the URL
+        run: echo "The url for ${{ github.ref_name }} is $URL"
+
+
 
