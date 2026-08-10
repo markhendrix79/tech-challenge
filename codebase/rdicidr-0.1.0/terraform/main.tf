@@ -122,7 +122,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 resource "aws_cloudwatch_log_delivery_source" "cloudfront_logs" {
   region = "us-east-1"
 
-  name         = "Cloudfront Logs"
+  name         = "cloudfront_logs_${var.environment}"
   log_type     = "ACCESS_LOGS"
   resource_arn = aws_cloudfront_distribution.s3_distribution.arn
 }
