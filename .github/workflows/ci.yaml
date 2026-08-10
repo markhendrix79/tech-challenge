@@ -1,0 +1,107 @@
+name: CI Pipeline
+
+on: 
+  pull_request:
+  push:
+    branches:
+      - devel
+      - stage
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: codebase/rdicidr-0.1.0
+
+    steps: 
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '15'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run tests
+        env: 
+          CI: true
+        run: npm run test
+
+      - name: Build project
+        run: npm run build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: my-artifact
+          path: codebase/rdicidr-0.1.0/build/
+
+  deploy:
+    runs-on: ubuntu-latest
+
+    if: github.event_name == 'push'
+
+    defaults:
+      run:
+        working-directory: codebase/rdicidr-0.1.0/terraform
+
+    outputs:
+      CLOUDFRONT_ID: ${{ steps.get_cloudfront_id.outputs.CLOUDFRONT_ID }}
+      URL: ${{ steps.get_url.outputs.URL }}
+
+    env:
+      TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - name: init apply
+        run: terraform init 
+      - run: terraform apply -auto-approve
+      - id: get_cloudfront_id
+        run: echo "CLOUDFRONT_ID=$(terraform output -raw dist_id)" >> $GITHUB_OUTPUT
+      - id: get_url
+        run: echo "URL=$(terraform output -raw URL)" >> $GITHUB_OUTPUT
+
+  sync:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    needs: [build, deploy]
+
+    env:
+      CLOUDFRONT_ID: ${{ needs.deploy.outputs.CLOUDFRONT_ID }}
+      URL: ${{ needs.deploy.outputs.URL }}
+
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: my-artifact
+          path: build/
+      - name: Configure AWS Credentials 
+        uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::062811504897:role/fs-temp-role
+      - name: Sync site to s3
+        run: aws s3 sync build/ s3://mark-hendrix-fullstack-tech-challenge-${{ github.ref_name }}
+      - name: Invalidate Cloudfront
+        run: aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID --paths "/*"
+      - name: Display the URL
+        run: echo "The url for ${{ github.ref_name }} is $URL"
