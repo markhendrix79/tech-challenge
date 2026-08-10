@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on: 
   pull_request:
-  merge:
+  push:
     branches:
       - devel
       - stage
@@ -46,20 +46,20 @@ jobs:
           name: my-artifact
           path: codebase/rdicidr-0.1.0/build
 
-    deploy:
-      runs-on: ubuntu-latest
+  deploy:
+    runs-on: ubuntu-latest
 
-      defaults:
-        run:
-          working-directory: codebase/rdicidr-0.1.0/terraform
+    defaults:
+      run:
+        working-directory: codebase/rdicidr-0.1.0/terraform
 
-      steps:
-        - uses: hashicorp/setup-terraform@v4
-          with:
-            cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-        - run: terraform init
-        - run: terraform plan
-          if: github.event_name = pull_request
-        - run: terraform apply -auto-approve
-          if: github.event_name = merge
+    steps:
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+      - run: terraform init
+      - run: terraform plan
+        if: github.event_name = pull_request
+      - run: terraform apply -auto-approve
+        if: github.event_name = merge
 
