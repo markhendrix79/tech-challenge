@@ -71,6 +71,10 @@ jobs:
           TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
       - run: terraform plan
         if: github.event_name == 'pull_request'
+        env:
+          TF_WORKSPACE: "tech-challenge-${{ github.base_ref }}"
       - run: terraform apply -auto-approve
         if: github.event_name == 'push'
+        env:
+          TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
 
