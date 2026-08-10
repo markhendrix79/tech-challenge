@@ -51,6 +51,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    if: github.event_name == 'push'
+
     defaults:
       run:
         working-directory: codebase/rdicidr-0.1.0/terraform
@@ -59,30 +61,18 @@ jobs:
       CLOUDFRONT_ID: ${{ steps.get_cloudfront_id.outputs.CLOUDFRONT_ID }}
       URL: ${{ steps.get_url.outputs.URL }}
 
+    env:
+      TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
+
     steps:
       - name: Check out code
         uses: actions/checkout@v2
       - uses: hashicorp/setup-terraform@v4
         with:
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      - name: init plan
-        run: terraform init 
-        if: github.event_name == 'pull_request'
-        env:
-          TF_WORKSPACE: "tech-challenge-${{ github.base_ref }}"
       - name: init apply
         run: terraform init 
-        if: github.event_name == 'push'
-        env:
-          TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
-      - run: terraform plan
-        if: github.event_name == 'pull_request'
-        env:
-          TF_WORKSPACE: "tech-challenge-${{ github.base_ref }}"
       - run: terraform apply -auto-approve
-        if: github.event_name == 'push'
-        env:
-          TF_WORKSPACE: "tech-challenge-${{ github.ref_name }}"
       - id: get_cloudfront_id
         run: echo "CLOUDFRONT_ID=$(terraform output -raw dist_id)" >> $GITHUB_OUTPUTS
       - id: get_url
