@@ -102,9 +102,6 @@ jobs:
       - name: Sync site to s3
         run: aws s3 sync build/ s3://mark-hendrix-fullstack-tech-challenge-${{ github.ref_name }}
       - name: Invalidate Cloudfront
-        run: aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID
+        run: aws cloudfront create-invalidation --distribution-id $CLOUDFRONT_ID --paths "/*"
       - name: Display the URL
         run: echo "The url for ${{ github.ref_name }} is $URL"
-
-
-
