@@ -66,7 +66,7 @@ locals {
 
 
 resource "aws_cloudfront_origin_access_control" "default" {
-  name                              = "default-oac"
+  name                              = "oac-tech-challenge-${var.environment}"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -154,3 +154,10 @@ resource "aws_cloudwatch_log_delivery" "example" {
   }
 }
 
+output "dist_id" {
+    value = aws_cloudfront_distribution.s3_distribution.id
+}
+
+output "URL" {
+    value = aws_cloudfront_distribution.s3_distribution.domain_name
+}
