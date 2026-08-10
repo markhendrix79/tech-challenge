@@ -46,7 +46,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: my-artifact
-          path: codebase/rdicidr-0.1.0/build
+          path: codebase/rdicidr-0.1.0/build/
 
   deploy:
     runs-on: ubuntu-latest
@@ -93,7 +93,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: my-artifact
-          path: /build
+          path: build/
       - name: Configure AWS Credentials 
         uses: aws-actions/configure-aws-credentials@v6.2.3
         with:
