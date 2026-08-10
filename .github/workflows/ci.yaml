@@ -2,14 +2,20 @@ name: CI Pipeline
 
 on: 
   pull_request:
+  merge:
+    branches:
+      - devel
+      - stage
 
-defaults:
-  run:
-    working-directory: codebase/rdicidr-0.1.0
+
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: codebase/rdicidr-0.1.0
 
     steps: 
       - name: Check out code
@@ -33,3 +39,27 @@ jobs:
 
       - name: Build project
         run: npm run build
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: my-artifact
+          path: codebase/rdicidr-0.1.0/build
+
+    deploy:
+      runs-on: ubuntu-latest
+
+      defaults:
+        run:
+          working-directory: codebase/rdicidr-0.1.0/terraform
+
+      steps:
+        - uses: hashicorp/setup-terraform@v4
+          with:
+            cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+        - run: terraform init
+        - run: terraform plan
+          if: github.event_name = pull_request
+        - run: terraform apply -auto-approve
+          if: github.event_name = merge
+
